@@ -1,0 +1,9 @@
+ .btn{width:100%;min-height:54px;padding:.9rem 1.15rem;border:1px solid transparent;border-radius:var(--radius-md);display:inline-flex;align-items:center;justify-content:center;gap:.55rem;font-weight:var(--fw-bold);transition:box-shadow var(--fast),background-color var(--fast),border-color var(--fast)}
+.btn:disabled{opacity:.45;cursor:not-allowed}.btn--primary{background:var(--yellow);color:var(--black)}.btn--primary:hover:not(:disabled){box-shadow:0 8px 20px rgba(242,184,0,.22)}
+.btn--secondary{background:var(--white);color:var(--black);border-color:var(--border)}.btn--ghost{min-height:44px;background:transparent;color:var(--text-muted);border-color:transparent}.btn--whatsapp{background:#25D366;color:var(--white)}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+.field{display:grid;gap:.45rem}.field__label{font-size:var(--fs-sm);font-weight:var(--fw-bold)}
+.field__input{width:100%;min-height:56px;padding:.8rem 1rem;border:1px solid rgba(0,0,0,.14);border-radius:var(--radius-md);background:var(--white);color:var(--black);font-size:1.05rem;font-weight:var(--fw-semibold)}
+.field__input:focus{border-color:var(--yellow);outline:3px solid rgba(242,184,0,.15)}
+.field__error{min-height:1.05rem;color:#9b1c1c;font-size:var(--fs-xs);font-weight:var(--fw-bold)}
+.back-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem 0;border:0;background:transparent;color:var(--text-muted);font-size:var(--fs-sm);font-weight:var(--fw-bold)}
