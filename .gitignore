@@ -1,2 +1,5 @@
 node_modules/
 anterior/
+.env
+.env.*
+!.env.example
