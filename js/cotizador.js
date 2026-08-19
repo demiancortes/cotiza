@@ -45,6 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function clearState(){
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem("vizual_cotizador_session_id");
+        sessionStorage.removeItem("vizual_cotizador_inicio_registrado");
     }
 
     function getSessionId(){
