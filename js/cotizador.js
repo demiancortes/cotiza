@@ -42,7 +42,44 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-    function clearState(){ localStorage.removeItem(STORAGE_KEY); }
+    function clearState(){
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem("vizual_cotizador_session_id");
+    }
+
+    function getSessionId(){
+        const key = "vizual_cotizador_session_id";
+        let sessionId = localStorage.getItem(key);
+
+        if(!sessionId){
+            sessionId = crypto.randomUUID();
+            localStorage.setItem(key, sessionId);
+        }
+
+        return sessionId;
+    }
+
+    async function trackEvent(evento, datos = {}){
+        try{
+            const payload = {
+                session_id: getSessionId(),
+                evento,
+                ...datos
+            };
+
+            await fetch("/api/evento.php", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload),
+                keepalive: true
+            });
+        }catch(error){
+            // La analítica nunca debe romper el cotizador.
+            console.warn("Error registrando evento:", error);
+        }
+    }
 
     function money(value){
         return new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(value);
@@ -148,7 +185,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const cards=[...document.querySelectorAll("[data-quality]")];
         cards.forEach(card=>card.addEventListener("click",()=>{
-            state.currentWindow.calidad=card.dataset.quality; saveState();
+            state.currentWindow.calidad=card.dataset.quality;
+            saveState();
+
+            trackEvent("calidad_seleccionada", {
+                calidad: state.currentWindow.calidad
+            });
             cards.forEach(item=>{
                 const active=item.dataset.quality===state.currentWindow.calidad;
                 item.classList.toggle("is-selected",active);
@@ -230,9 +272,28 @@ document.addEventListener("DOMContentLoaded", () => {
             if(state.context==="edit"&&state.editingIndex!==null) state.ventanas[state.editingIndex]=item;
             else state.ventanas.push(item);
 
+            const currentTotal = total();
+
+            trackEvent("medidas_calculadas", {
+                calidad: item.calidad,
+                ancho: item.ancho,
+                alto: item.alto,
+                area: item.area,
+                precio: item.precio,
+                numero_ventanas: state.ventanas.length,
+                total: currentTotal
+            });
+
             state.currentWindow={calidad:null,ancho:"",alto:""};
             state.editingIndex=null; state.context="initial";
-            saveState(); setStep(3);
+            saveState();
+
+            trackEvent("cotizacion_generada", {
+                numero_ventanas: state.ventanas.length,
+                total: currentTotal
+            });
+
+            setStep(3);
         });
     }
 
@@ -284,7 +345,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 <p class="muted notice-line"><i class="bi bi-info-circle-fill"></i><span>El total es un estimado y se confirma durante la visita.</span></p>
             </div>`;
 
-        document.getElementById("addWindow").addEventListener("click",startNewWindow);
+        document.getElementById("addWindow").addEventListener("click",()=>{
+            trackEvent("ventana_agregada", {
+                numero_ventanas: state.ventanas.length,
+                total: total()
+            });
+
+            startNewWindow();
+        });
         document.getElementById("continueSummary").addEventListener("click",()=>setStep(4));
 
         document.querySelectorAll("[data-edit]").forEach(button=>button.addEventListener("click",()=>editWindow(Number(button.dataset.edit))));
@@ -364,7 +432,14 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`;
 
         document.querySelector('[data-back="3"]')?.addEventListener("click",()=>setStep(3));
-        document.getElementById("interested").addEventListener("click",()=>setStep(5));
+        document.getElementById("interested").addEventListener("click",()=>{
+            trackEvent("interesado_click", {
+                numero_ventanas: state.ventanas.length,
+                total: total()
+            });
+
+            setStep(5);
+        });
     }
 
     function renderContact(){
@@ -403,8 +478,20 @@ document.addEventListener("DOMContentLoaded", () => {
             if(!valid)return;
 
             state.cliente.nombre=nombre; state.cliente.whatsapp=whatsapp; saveState();
+
+            trackEvent("datos_enviados", {
+                numero_ventanas: state.ventanas.length,
+                total: total()
+            });
+
             const message=buildWhatsappMessage();
             const url=`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
+            trackEvent("whatsapp_click", {
+                numero_ventanas: state.ventanas.length,
+                total: total()
+            });
+
             window.open(url,"_blank","noopener,noreferrer");
             clearState(); renderFinal(message);
         });
@@ -432,7 +519,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             </div>`;
 
-        document.getElementById("restart").addEventListener("click",()=>{state=cloneDefault();saveState();updateProgress(1);render()});
+        document.getElementById("restart").addEventListener("click",()=>{
+            clearState();
+            state=cloneDefault();
+            saveState();
+            updateProgress(1);
+            render();
+        });
     }
     // Recuperación segura: una cotización existente vuelve al resumen después de recargar.
     if(state.ventanas && state.ventanas.length){
@@ -443,6 +536,11 @@ document.addEventListener("DOMContentLoaded", () => {
         saveState();
     }
 
+
+    if(!sessionStorage.getItem("vizual_cotizador_inicio_registrado")){
+        trackEvent("cotizador_inicio");
+        sessionStorage.setItem("vizual_cotizador_inicio_registrado", "1");
+    }
 
     render();
 });
